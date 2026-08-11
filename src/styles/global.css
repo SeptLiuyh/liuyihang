@@ -308,11 +308,6 @@ img {
   font-weight: 300;
 }
 
-.contact-note {
-  font-size: 12px;
-  color: var(--muted);
-}
-
 /* ---------- 响应式 ---------- */
 @media (max-width: 760px) {
   /* 顶部栏 + 汉堡按钮 */
