@@ -159,19 +159,19 @@ if (series.sortBy === "date") {
   photos.sort(comparePhotos);
 }
 
-// 生成优化后的 webp 地址（1600px、质量 82）
+// 生成优化后的 webp 地址（手机 640px / 电脑 1600px，质量 82）
 photos = await Promise.all(
-  photos.map(async (photo) => ({
-    ...photo,
-    url: (
-      await getImage({
-        src: photo.src,
-        width: 1600,
-        format: "webp",
-        quality: 82,
-      })
-    ).src,
-  }))
+  photos.map(async (photo) => {
+    const [small, large] = await Promise.all([
+      getImage({ src: photo.src, width: 640, format: "webp", quality: 82 }),
+      getImage({ src: photo.src, width: 1600, format: "webp", quality: 82 }),
+    ]);
+    return {
+      ...photo,
+      url: large.src,
+      srcset: `${small.src} 640w, ${large.src} 1600w`,
+    };
+  })
 );
 
 // 排序：先按子文件夹分组，再按拍摄时间（或文件名）
@@ -208,8 +208,10 @@ function comparePhotos(a: any, b: any): number {
           <figure class="series-page">
             <div class="series-photo">
               <img
-                {...(i === 0 ? { src: photo.url } : {})}
+                {...(i === 0 ? { src: photo.url, srcset: photo.srcset } : {})}
                 data-src={photo.url}
+                data-srcset={photo.srcset}
+                sizes="(max-width: 760px) 100vw, 80vw"
                 alt={photo.name}
                 decoding="async"
               />

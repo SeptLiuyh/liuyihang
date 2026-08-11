@@ -6,6 +6,7 @@ const observer = new IntersectionObserver(
         const img = entry.target.querySelector<HTMLImageElement>("img");
         if (img && img.dataset.src && !img.getAttribute("src")) {
           img.src = img.dataset.src;
+          if (img.dataset.srcset) img.srcset = img.dataset.srcset;
         }
         observer.unobserve(entry.target);
       }

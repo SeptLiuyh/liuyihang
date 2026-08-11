@@ -22,14 +22,13 @@ const raw = Object.entries(images)
 // 生成优化后的 webp 地址；页面只先加载第一张，其余由轮播脚本按需加载
 const slides = await Promise.all(
   raw.map(async (slide) => {
-    const opt = await getImage({
-      src: slide.src,
-      width: 1600,
-      format: "webp",
-      quality: 82,
-    });
+    const [small, large] = await Promise.all([
+      getImage({ src: slide.src, width: 640, format: "webp", quality: 82 }),
+      getImage({ src: slide.src, width: 1600, format: "webp", quality: 82 }),
+    ]);
     return {
-      url: opt.src,
+      url: large.src,
+      srcset: `${small.src} 640w, ${large.src} 1600w`,
       name: slide.name,
       ar: `${slide.src.width}/${slide.src.height}`,
       arNum: (slide.src.width / slide.src.height).toFixed(4),
@@ -48,8 +47,10 @@ const slides = await Promise.all(
       slides.map((slide, i) => (
         <div class="slide" data-ar={slide.ar} data-ar-num={slide.arNum}>
           <img
-            {...(i === 0 ? { src: slide.url } : {})}
+            {...(i === 0 ? { src: slide.url, srcset: slide.srcset } : {})}
             data-src={slide.url}
+            data-srcset={slide.srcset}
+            sizes="(max-width: 760px) 100vw, 90vw"
             alt={slide.name}
             decoding="async"
           />
