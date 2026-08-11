@@ -24,9 +24,9 @@ const slides = await Promise.all(
   raw.map(async (slide) => {
     const opt = await getImage({
       src: slide.src,
-      width: 1280,
+      width: 1600,
       format: "webp",
-      quality: 72,
+      quality: 82,
     });
     return {
       url: opt.src,

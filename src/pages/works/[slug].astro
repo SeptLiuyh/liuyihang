@@ -159,16 +159,16 @@ if (series.sortBy === "date") {
   photos.sort(comparePhotos);
 }
 
-// 生成优化后的 webp 地址（1280px、质量 72）
+// 生成优化后的 webp 地址（1600px、质量 82）
 photos = await Promise.all(
   photos.map(async (photo) => ({
     ...photo,
     url: (
       await getImage({
         src: photo.src,
-        width: 1280,
+        width: 1600,
         format: "webp",
-        quality: 72,
+        quality: 82,
       })
     ).src,
   }))
