@@ -26,9 +26,11 @@ const slides = await Promise.all(
       getImage({ src: slide.src, width: 640, format: "webp", quality: 82 }),
       getImage({ src: slide.src, width: 1600, format: "webp", quality: 82 }),
     ]);
+    // 文件名中的空格转成 %20，避免 srcset 解析出错
+    const enc = (u: string) => u.replace(/ /g, "%20");
     return {
-      url: large.src,
-      srcset: `${small.src} 640w, ${large.src} 1600w`,
+      url: enc(large.src),
+      srcset: `${enc(small.src)} 640w, ${enc(large.src)} 1600w`,
       name: slide.name,
       ar: `${slide.src.width}/${slide.src.height}`,
       arNum: (slide.src.width / slide.src.height).toFixed(4),
