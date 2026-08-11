@@ -57,6 +57,9 @@ if (container && slides.length >= 2) {
   const nextRandom = () => {
     let next = randomIndex();
     while (next === current) next = randomIndex();
+    // 按需加载：切换前才给下一张设置真实图片地址
+    const img = slides[next]?.querySelector("img");
+    if (img && img.dataset.src && !img.src) img.src = img.dataset.src;
     goTo(next);
   };
 

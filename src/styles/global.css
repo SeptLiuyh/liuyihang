@@ -45,7 +45,12 @@ img {
 }
 
 /* ---------- 左侧导航 ---------- */
-.nav {
+.top-bar,
+.menu-btn {
+  display: none;
+}
+
+.sidebar {
   position: fixed;
   top: 0;
   left: 0;
@@ -58,14 +63,14 @@ img {
   flex-direction: column;
 }
 
-.nav-name {
+.sidebar-name {
   font-size: 15px;
   font-weight: 300;
   color: var(--ink);
   letter-spacing: 0.01em;
 }
 
-.nav-works-heading {
+.sidebar-works-heading {
   margin-top: 2.2rem;
   font-size: 11px;
   letter-spacing: 0.12em;
@@ -106,8 +111,8 @@ img {
   font-weight: 300;
 }
 
-.nav a:hover,
-.nav a.active {
+.sidebar a:hover,
+.sidebar a.active {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -309,32 +314,68 @@ img {
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 760px) {
-  .nav {
-    position: static;
+  /* 顶部栏 + 汉堡按钮 */
+  .top-bar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--pad);
+    background: var(--bg);
+    border-bottom: 1px solid #eeeeee;
+    z-index: 400;
+  }
+
+  .top-brand {
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--ink);
+  }
+
+  .menu-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .menu-btn span {
+    width: 22px;
+    height: 1.5px;
+    background: var(--ink);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+
+  /* 侧栏变成全屏覆盖菜单（从左侧滑入） */
+  .sidebar {
+    position: fixed;
+    inset: 0;
     width: 100%;
-    height: auto;
-    padding: 1rem var(--pad);
+    height: 100dvh;
+    border-right: none;
+    transform: translateX(-100%);
+    transition: transform 0.35s ease;
+    z-index: 300;
   }
 
-  .nav-works-heading {
-    margin-top: 1.2rem;
-  }
-
-  .nav-series {
-    padding-left: 0;
-  }
-
-  .nav-misc {
-    margin-top: 1.2rem;
+  .sidebar.open {
+    transform: translateX(0);
   }
 
   .main {
     margin-left: 0;
-    padding: 1rem var(--pad);
+    padding: calc(56px + 1rem) var(--pad) 1rem;
   }
 
   .slideshow {
-    height: 60vh;
+    height: calc(100dvh - 9rem);
   }
 
   .about-layout {

@@ -6,12 +6,23 @@ const pathname = Astro.url.pathname;
 const isActive = (href: string) => pathname === href;
 ---
 
-<aside class="nav">
-  <a class="nav-name" href={base} class:list={{ active: isActive(base) }}>
+<div class="top-bar">
+  <a class="top-brand" href={base}>
+    {SITE.name} | {SITE.nameEn}
+  </a>
+  <button class="menu-btn" id="menu-btn" aria-label="菜单" aria-expanded="false">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+</div>
+
+<aside class="sidebar">
+  <a class="sidebar-name" href={base} class:list={{ active: isActive(base) }}>
     {SITE.name} | {SITE.nameEn}
   </a>
 
-  <p class="nav-works-heading">Works</p>
+  <p class="sidebar-works-heading">Works</p>
   <nav class="nav-series" aria-label="作品系列">
     {
       WORK_SERIES.map((series) => {
