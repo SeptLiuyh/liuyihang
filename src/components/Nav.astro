@@ -1,0 +1,36 @@
+---
+import { SITE, WORK_SERIES } from "../config/site";
+
+const base = import.meta.env.BASE_URL;
+const pathname = Astro.url.pathname;
+const isActive = (href: string) => pathname === href;
+---
+
+<aside class="nav">
+  <a class="nav-name" href={base} class:list={{ active: isActive(base) }}>
+    {SITE.name} | {SITE.nameEn}
+  </a>
+
+  <p class="nav-works-heading">Works</p>
+  <nav class="nav-series" aria-label="作品系列">
+    {
+      WORK_SERIES.map((series) => {
+        const href = `${base}works/${series.slug}/`;
+        return (
+          <a href={href} class:list={{ active: isActive(href) }}>
+            {series.title} <span class="nav-en">/ {series.en}</span>
+          </a>
+        );
+      })
+    }
+  </nav>
+
+  <nav class="nav-misc" aria-label="其他页面">
+    <a href={`${base}about/`} class:list={{ active: isActive(`${base}about/`) }}>
+      About
+    </a>
+    <a href={`${base}contact/`} class:list={{ active: isActive(`${base}contact/`) }}>
+      Contact
+    </a>
+  </nav>
+</aside>

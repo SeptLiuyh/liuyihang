@@ -1,0 +1,19 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE } from "../config/site";
+---
+
+<Layout title={`${SITE.name} | Contact`}>
+  <header class="page-head">
+    <h1>Contact</h1>
+  </header>
+  <div class="contact-body">
+    <a class="contact-mail" href={`mailto:${SITE.email}`}>{SITE.email}</a>
+    <a class="contact-social" href={SITE.xiaohongshu} target="_blank" rel="noreferrer">
+      小红书 ↗
+    </a>
+    <p class="contact-note">
+      占位内容：邮箱和小红书链接在 src/config/site.ts 中修改
+    </p>
+  </div>
+</Layout>

@@ -1,0 +1,221 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { SITE, WORK_SERIES } from "../../config/site";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
+export function getStaticPaths() {
+  return WORK_SERIES.map((series) => ({
+    params: { slug: series.slug },
+    props: { series },
+  }));
+}
+
+const { series } = Astro.props;
+
+// 自动读取该系列照片目录 src/photos/<slug>/ 下的所有图片
+const images = import.meta.glob(
+  "../../photos/**/*.{jpg,JPG,jpeg,JPEG,png,PNG,webp,gif}",
+  {
+    eager: true,
+    import: "default",
+  }
+);
+
+// 说明文字规则：
+// 1. 照片同名 .txt（IMG_1.jpg ↔ IMG_1.txt）优先级最高
+// 2. 没有同名 txt 时，使用照片所在文件夹里的 .txt（整文件夹共用）
+const captionFiles = import.meta.glob("../../photos/**/*.txt", {
+  eager: true,
+  query: "?raw",
+  import: "default",
+}) as Record<string, string>;
+
+// 按目录归组所有 txt 文件
+const txtByDir: Record<string, string[]> = {};
+for (const p of Object.keys(captionFiles)) {
+  const dir = p.slice(0, p.lastIndexOf("/"));
+  (txtByDir[dir] ??= []).push(p);
+}
+for (const dir of Object.keys(txtByDir)) txtByDir[dir].sort();
+
+// 每个目录里的照片文件名（不含扩展名），用于区分「单张说明」和「整组说明」
+const photoNamesByDir: Record<string, Set<string>> = {};
+for (const p of Object.keys(images)) {
+  const dir = p.slice(0, p.lastIndexOf("/"));
+  (photoNamesByDir[dir] ??= new Set()).add(
+    p.split("/").pop()!.replace(/\.[^.]+$/, "")
+  );
+}
+
+function captionFor(photoPath: string): string {
+  const dir = photoPath.slice(0, photoPath.lastIndexOf("/"));
+  const base = photoPath.split("/").pop()!.replace(/\.[^.]+$/, "");
+  const own = `${dir}/${base}.txt`;
+  if (captionFiles[own]) return captionFiles[own];
+  // 文件夹共用说明：只认「不是任何照片同名」的 txt（如 说明.txt / caption.txt）
+  const names = photoNamesByDir[dir] ?? new Set<string>();
+  const dirTxts = (txtByDir[dir] ?? []).filter((p) => {
+    const t = p.split("/").pop()!.replace(/\.txt$/i, "");
+    return !names.has(t);
+  });
+  if (dirTxts.length === 0) return "";
+  const preferred = dirTxts.find((p) =>
+    /^(说明|caption)\.txt$/i.test(p.split("/").pop()!)
+  );
+  return captionFiles[preferred ?? dirTxts[0]];
+}
+
+// 从 JPEG 的 EXIF 段读取拍摄时间（DateTimeOriginal）
+function extractDateTimeOriginal(buffer: Buffer): string | null {
+  try {
+    let offset = 2;
+    while (offset + 4 <= buffer.length) {
+      if (buffer[offset] !== 0xff) break;
+      const marker = buffer.readUInt16BE(offset);
+      const size = buffer.readUInt16BE(offset + 2);
+      if (marker === 0xffe1) {
+        const data = buffer.subarray(offset + 4, offset + 2 + size);
+        if (data.subarray(0, 6).toString("latin1") === "Exif\0\0") {
+          return parseTiffDateTime(data.subarray(6));
+        }
+      }
+      offset += 2 + size;
+    }
+  } catch {
+    /* 读取失败时返回 null，退回文件名排序 */
+  }
+  return null;
+}
+
+function parseTiffDateTime(tiff: Buffer): string | null {
+  const littleEndian = tiff.subarray(0, 2).toString("latin1") === "II";
+  const readUInt = (o: number) =>
+    littleEndian ? tiff.readUInt32LE(o) : tiff.readUInt32BE(o);
+  const readUShort = (o: number) =>
+    littleEndian ? tiff.readUInt16LE(o) : tiff.readUInt16BE(o);
+
+  const ifd0 = readUInt(4);
+  const ifd0Count = readUShort(ifd0);
+  for (let i = 0; i < ifd0Count; i++) {
+    const entry = ifd0 + 2 + i * 12;
+    if (readUShort(entry) === 0x8769) {
+      // Exif IFD
+      const exifOffset = readUInt(entry + 8);
+      const exifCount = readUShort(exifOffset);
+      for (let j = 0; j < exifCount; j++) {
+        const e = exifOffset + 2 + j * 12;
+        if (readUShort(e) === 0x9003) {
+          // DateTimeOriginal
+          const len = readUInt(e + 4);
+          const valueOffset = len <= 4 ? e + 8 : readUInt(e + 8);
+          return tiff
+            .subarray(valueOffset, valueOffset + len)
+            .toString("latin1")
+            .replace(/\0.*$/, "");
+        }
+      }
+    }
+  }
+  return null;
+}
+
+let photos = Object.entries(images)
+  .filter(([path]) => path.includes(`/photos/${series.slug}/`))
+  .map(([path, src]) => {
+    // 照片相对系列目录的位置，如 "老单反/IMG_1.jpg" 或 "IMG_1.jpg"
+    const rel = path.split(`/photos/${series.slug}/`)[1] ?? "";
+    const dir = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+    return {
+      path,
+      file: path.split("/").pop()!,
+      src: src as ImageMetadata,
+      name: path.split("/").pop()!.replace(/\.[^.]+$/, ""),
+      dir,
+      caption: captionFor(path),
+    };
+  })
+  .sort(comparePhotos);
+
+// 按拍摄时间自动排序（series.sortBy === "date" 时启用）
+if (series.sortBy === "date") {
+  photos = await Promise.all(
+    photos.map(async (photo) => ({
+      ...photo,
+      date: extractDateTimeOriginal(
+        await readFile(
+          join(
+            process.cwd(),
+            "src",
+            "photos",
+            photo.path.replace("../../photos/", "")
+          )
+        )
+      ),
+    }))
+  );
+  photos.sort(comparePhotos);
+}
+
+// 排序：先按子文件夹分组，再按拍摄时间（或文件名）
+function comparePhotos(a: any, b: any): number {
+  return (
+    a.dir.localeCompare(b.dir, "zh-CN") ||
+    (a.date ?? "9999").localeCompare(b.date ?? "9999") ||
+    a.name.localeCompare(b.name, undefined, { numeric: true })
+  );
+}
+---
+
+<Layout title={`${series.title} | ${SITE.name}`}>
+  <header class="page-head">
+    <h1>{series.title}</h1>
+    <p class="page-sub">{series.en}</p>
+  </header>
+
+  {
+    series.description && (
+      <div class="series-desc">
+        <p>{series.description}</p>
+        {series.descriptionEn && (
+          <p class="series-desc-en">{series.descriptionEn}</p>
+        )}
+      </div>
+    )
+  }
+
+  {
+    photos.length > 0 ? (
+      <div class="series-pages">
+        {photos.map((photo) => (
+          <figure class="series-page">
+            <div class="series-photo">
+              <Image
+                src={photo.src}
+                alt={photo.name}
+                width={1600}
+                fit="inside"
+                format="webp"
+                quality={80}
+                loading="lazy"
+                decoding="async"
+              />
+              {photo.caption && (
+                <p class="series-caption">{photo.caption}</p>
+              )}
+            </div>
+          </figure>
+        ))}
+      </div>
+    ) : (
+      <div class="empty">
+        <p>空位 — 这个系列的照片目录</p>
+        <p class="hint">
+          把照片放进 src/photos/{series.slug}/ 就会自动显示在这里
+        </p>
+      </div>
+    )
+  }
+</Layout>

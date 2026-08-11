@@ -1,0 +1,62 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE } from "../config/site";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+// About 照片：读取 src/photos/about/ 下的图片
+const images = import.meta.glob(
+  "../photos/about/*.{jpg,JPG,jpeg,JPEG,png,PNG,webp,gif}",
+  {
+    eager: true,
+    import: "default",
+  }
+);
+
+const photos = Object.entries(images)
+  .map(([path, src]) => ({
+    src: src as ImageMetadata,
+    name: path.split("/").pop()!.replace(/\.[^.]+$/, ""),
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+---
+
+<Layout title={`${SITE.name} | About`}>
+  <header class="page-head">
+    <h1>About</h1>
+  </header>
+  <div class="about-layout">
+    <div class="about-body">
+      {SITE.aboutZh.split(/\n+/).map((para) => (
+        <p>{para}</p>
+      ))}
+      {SITE.aboutEn.split(/\n+/).map((para) => (
+        <p class="about-en">{para}</p>
+      ))}
+    </div>
+
+    {
+      photos.length > 0 ? (
+        <div class="about-photos">
+          {photos.map((photo) => (
+            <Image
+              src={photo.src}
+              alt={photo.name}
+              width={1000}
+              fit="inside"
+              format="webp"
+              quality={80}
+              loading="lazy"
+              decoding="async"
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="empty about-empty">
+          <p>照片位置</p>
+          <p class="hint">把照片放进 src/photos/about/ 就会显示在这里</p>
+        </div>
+      )
+    }
+  </div>
+</Layout>
