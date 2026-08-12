@@ -375,6 +375,22 @@ img {
     height: calc(100dvh - 9rem);
   }
 
+  /* 手机端：照片全宽显示、自然高度，不要整页空白 */
+  .series-page {
+    min-height: auto;
+    padding: 1rem 0;
+  }
+
+  .series-page img {
+    width: 100%;
+    height: auto;
+    max-height: none;
+  }
+
+  .series-photo {
+    display: block;
+  }
+
   .about-layout {
     flex-direction: column;
   }
