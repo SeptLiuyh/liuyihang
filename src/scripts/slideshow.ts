@@ -44,6 +44,21 @@ if (container && slides.length >= 2) {
   };
   applyRatio(current);
 
+  // 提前加载接下来两张，避免切换时空白
+  const loadAhead = (count = 2) => {
+    let started = 0;
+    for (let k = 1; k <= slides.length && started < count; k++) {
+      const idx = (current + k) % slides.length;
+      const img = slides[idx]?.querySelector("img");
+      if (img && img.dataset.src && !img.src) {
+        img.src = img.dataset.src;
+        if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+        started++;
+      }
+    }
+  };
+  loadAhead();
+
   // 图片加载完成后刷新比例（处理 EXIF 方向导致的横竖颠倒）
   slides.forEach((slide, i) => {
     slide
@@ -74,6 +89,7 @@ if (container && slides.length >= 2) {
     applyRatio(current);
     gsap.to(prev, { autoAlpha: 0, duration: FADE, ease: "power1.inOut", zIndex: 0 });
     gsap.to(next, { autoAlpha: 1, duration: FADE, ease: "power1.inOut", zIndex: 1 });
+    loadAhead(2);
   };
 
   window.setInterval(nextRandom, INTERVAL);

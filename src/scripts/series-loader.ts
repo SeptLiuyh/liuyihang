@@ -7,12 +7,22 @@ const observer = new IntersectionObserver(
         if (img && img.dataset.src && !img.getAttribute("src")) {
           img.src = img.dataset.src;
           if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+          // 失败时自动重试一次（防止网络抖动导致空白）
+          img.addEventListener(
+            "error",
+            () => {
+              if (img.dataset.retried) return;
+              img.dataset.retried = "1";
+              if (img.dataset.src) img.src = img.dataset.src;
+            },
+            { once: true }
+          );
         }
         observer.unobserve(entry.target);
       }
     }
   },
-  { rootMargin: "150% 0px" }
+  { rootMargin: "250% 0px" }
 );
 
 document
